@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "finanzas"
+version = "1.0.0"
+description = "Aplicación de escritorio para el control de finanzas personales"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Finanzas" }]
+keywords = ["finanzas", "presupuesto", "tkinter", "sqlite"]
+classifiers = [
+    "Environment :: X11 Applications",
+    "Intended Audience :: End Users/Desktop",
+    "Programming Language :: Python :: 3",
+    "Topic :: Office/Business :: Financial :: Accounting",
+]
+
+[project.gui-scripts]
+finanzas = "finanzas.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["finanzas*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"

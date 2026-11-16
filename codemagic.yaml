@@ -1,0 +1,83 @@
+# Compilación en la nube con Codemagic (https://codemagic.io).
+#
+# 1. Conecta el repositorio de GitHub/GitLab/Bitbucket.
+# 2. Codemagic detecta este archivo y deja elegir el workflow al compilar.
+# 3. Para Android no necesitas nada más: descarga el APK del artefacto.
+# 4. Para TestFlight crea antes una integración «App Store Connect» y cambia
+#    CAMBIA_ESTE_NOMBRE por su nombre. También necesitas una cuenta de Apple
+#    Developer y el bundle id registrado.
+#
+# Los workflows también se pueden lanzar desde la API o la CLI de Codemagic.
+
+workflows:
+  android-apk:
+    name: Finanzas · Android APK
+    instance_type: linux_x2
+    max_build_duration: 45
+    environment:
+      flutter: 3.50.0
+      java: 17
+    cache:
+      cache_paths:
+        - $HOME/.pub-cache
+        - $HOME/.gradle/caches
+        - $HOME/.gradle/wrapper
+    scripts:
+      - name: Dependencias
+        script: cd mobile && flutter pub get
+      - name: Análisis estático
+        script: cd mobile && flutter analyze --no-fatal-infos
+      - name: Pruebas
+        script: cd mobile && flutter test
+      - name: Compilar APK
+        script: cd mobile && flutter build apk --release
+    artifacts:
+      - mobile/build/app/outputs/flutter-apk/app-release.apk
+
+  ios-unsigned:
+    name: Finanzas · iOS sin firma (comprobar compilación)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      flutter: 3.50.0
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Dependencias
+        script: cd mobile && flutter pub get
+      - name: Compilar sin firma
+        script: cd mobile && flutter build ios --release --no-codesign
+    artifacts:
+      - mobile/build/ios/iphoneos/Runner.app
+
+  ios-testflight:
+    name: Finanzas · iOS TestFlight (requiere Apple Developer)
+    instance_type: mac_mini_m2
+    max_build_duration: 90
+    integrations:
+      # Cambia esto por el nombre de tu integración en Codemagic
+      # (Equipo → Integraciones → App Store Connect).
+      app_store_connect: CAMBIA_ESTE_NOMBRE
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.finanzas.finanzasMobile
+      flutter: 3.50.0
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Dependencias
+        script: cd mobile && flutter pub get
+      - name: Configurar perfiles de firma
+        script: xcode-project use-profiles
+      - name: Compilar IPA
+        script: |
+          cd mobile
+          flutter build ipa --release \
+            --export-options-plist=$HOME/export_options.plist
+    artifacts:
+      - mobile/build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
